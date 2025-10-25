@@ -1,0 +1,127 @@
+# --- Unity Generated Folders ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+
+# --- Unity Generated Files ---
+*.log
+*.pidb
+*.pdb
+*.mdb
+*.booproj
+*.svd
+*.opendb
+*.VC.db
+sysinfo.txt
+mono_crash.*
+
+# --- Unity Meta Files (auto-generated) ---
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# --- Builds ---
+*.apk
+*.aab
+*.app
+*.unitypackage
+*.unitypackage.meta
+
+# --- IDE and Editor Files ---
+.vs/
+.gradle/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.DotSettings.user
+
+# --- JetBrains Rider ---
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.DotSettings.user
+
+# --- Visual Studio ---
+.vs/
+.vscode/
+*.code-workspace
+
+# --- Addressables ---
+/ServerData
+/[Aa]ssets/StreamingAssets/aa*
+/[Aa]ssets/AddressableAssetsData/link.xml*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
+
+# --- Visual Scripting (Bolt) ---
+/[Aa]ssets/Unity.VisualScripting.Generated/
+
+# --- Test Runner ---
+InitTestScene*.unity*
+
+# --- Blender backup files ---
+*.blend1
+*.blend1.meta
+
+# --- Crashlytics ---
+crashlytics-build.properties
+
+# =========================
+# ML-Agents and AI Training
+# =========================
+# ML-Agents training outputs, checkpoints, logs
+/results/
+/models/
+/checkpoints/
+/summaries/
+/runs/
+/trainer_config.yaml
+*.tfevents.*
+*.ckpt
+*.ckpt.*
+*.onnx.data
+
+# =========================
+# OS-specific files
+# =========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# =========================
+# Python / ML Environment (if used)
+# =========================
+# Virtual environments
+venv/
+.env/
+ml-env/
+*.pyc
+__pycache__/
+
+# =========================
+# Logs, Backups, Temporary files
+# =========================
+*.log
+*.tmp
+*.bak
+*.swp
+*.old
