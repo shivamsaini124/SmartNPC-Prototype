@@ -5,134 +5,108 @@ using Unity.MLAgents.Sensors;
 
 public class NPCAgent : Agent
 {
+    [Header("References")]
     public Transform target;
+    
+    [Header("Movement")]
     public float moveSpeed = 5f;
     public float rotationSpeed = 200f;
-    public float reachReward = 80.0f;  // INCREASED - make success very clear
-    public float stepPenalty = -0.01f;
-    public float outOfBoundsPenalty = -5.0f;  // INCREASED - make failure clear
-    public float maxDistance = 10f;
-    public float targetReachDistance = 1.5f;
 
     private Rigidbody rb;
+
     private float previousDistanceToTarget;
-
-    [SerializeField] private Material winMaterial;
-    [SerializeField] private Material loseMaterial;
-    [SerializeField] private Renderer floorRenderer;
-
+    
     public override void Initialize()
     {
         rb = GetComponent<Rigidbody>();
     }
-
+    
     public override void OnEpisodeBegin()
     {
+        // Reset agent
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
-        transform.rotation = Quaternion.identity;  // Reset rotation too!
-
-        // Randomize positions
+        
+        // Random start position
         float randomX = Random.Range(-4f, 4f);
         float randomZ = Random.Range(-4f, 4f);
         transform.localPosition = new Vector3(randomX, 1f, randomZ);
-
+        
+        // Random target position
         float targetX = Random.Range(-4f, 4f);
         float targetZ = Random.Range(-4f, 4f);
-        target.localPosition = new Vector3(targetX, 1f, targetZ);
+        target.localPosition = new Vector3(targetX, 0.5f, targetZ);
 
-        previousDistanceToTarget = Vector3.Distance(
-            new Vector3(transform.localPosition.x, 0, transform.localPosition.z),
-            new Vector3(target.localPosition.x, 0, target.localPosition.z)
-        );
+        previousDistanceToTarget = Vector3.Distance(transform.position, target.position);
+        
     }
-
+    
     public override void CollectObservations(VectorSensor sensor)
     {
-        // SIMPLIFIED: Only use relative direction and distance (5 values total)
-        
-        // 1. Direction to target in LOCAL SPACE (2 values: x, z only)
-        Vector3 directionToTarget = target.localPosition - transform.localPosition;
-        directionToTarget.y = 0; // Ignore height
-        Vector3 localDirection = transform.InverseTransformDirection(directionToTarget.normalized);
-        sensor.AddObservation(localDirection.x);  // Left/Right
-        sensor.AddObservation(localDirection.z);  // Forward/Back
-        
-        // 2. Distance to target (1 value, normalized)
-        float distance = Vector3.Distance(
-            new Vector3(transform.localPosition.x, 0, transform.localPosition.z),
-            new Vector3(target.localPosition.x, 0, target.localPosition.z)
-        );
-        sensor.AddObservation(distance / 12f);  // Normalize by max expected distance
-        
-        // 3. Agent's rotation velocity (1 value)
-        sensor.AddObservation(rb.angularVelocity.y / 100f);  // Normalized rotation speed
-        
-        // 4. Agent's forward velocity (1 value)
-        float forwardVelocity = Vector3.Dot(rb.linearVelocity, transform.forward);
-        sensor.AddObservation(forwardVelocity / moveSpeed);  // Normalized
-        
-        // Total: 5 observations (much cleaner!)
-    }
+        sensor.AddObservation(target.position - transform.position);
+        sensor.AddObservation(transform.forward);
 
+        sensor.AddObservation(rb.linearVelocity);
+        sensor.AddObservation(rb.angularVelocity);
+    }
+    
     public override void OnActionReceived(ActionBuffers actions)
     {
-        // Get actions
-        float moveAction = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
-        float rotateAction = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
-
-        // SIMPLIFIED MOVEMENT - apply forces directly
-        Vector3 moveForce = transform.forward * moveAction * moveSpeed;
-        rb.linearVelocity = new Vector3(moveForce.x, rb.linearVelocity.y, moveForce.z);
+        // Get AI's decisions
+        float moveForward = actions.ContinuousActions[0];
+        float rotate = actions.ContinuousActions[1];
         
         // Apply rotation
-        float rotation = rotateAction * rotationSpeed * Time.fixedDeltaTime;
-        transform.Rotate(0f, rotation, 0f);
+        transform.Rotate(0f, rotate * rotationSpeed * Time.fixedDeltaTime, 0f);
+        
+        // Apply movement
+        Vector3 move = transform.forward * moveForward * moveSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(transform.position + move);
 
-        // Calculate distance (ignore Y-axis)
-        float distanceToTarget = Vector3.Distance(
-            new Vector3(transform.localPosition.x, 0, transform.localPosition.z),
-            new Vector3(target.localPosition.x, 0, target.localPosition.z)
-        );
+        // Calculate distance to target
+        float distanceToTarget = Vector3.Distance(transform.position, target.position);
 
-        // MAIN REWARD: Strong reward for getting closer
+        
+        // SUCCESS: Reached target
+        if (distanceToTarget < 1.5f)
+        {
+            AddReward(10.0f);
+            Debug.Log("Reached Target: +10.0");
+            EndEpisode();
+        }
+
+        // FAILURE: Went too far
+        if (Mathf.Abs(transform.localPosition.x) > 10f ||
+            Mathf.Abs(transform.localPosition.z) > 10f)
+        {
+            AddReward(-10.0f);
+            Debug.Log("Lost: -1.0");
+            EndEpisode();
+        }
+
+        // Reward for reducing distance
         float distanceDelta = previousDistanceToTarget - distanceToTarget;
-        AddReward(distanceDelta * 1.0f);  // INCREASED multiplier
+        AddReward(distanceDelta * 0.5f);
+
+        // Bonus when very close (within 3 units)
+        if (distanceToTarget < 3.0f)
+        {
+            float proximityBonus = (3.0f - distanceToTarget) / 3.0f * 0.1f;
+            AddReward(proximityBonus);
+        }
+
+        // Small time penalty
+        AddReward(-0.001f);
+
         previousDistanceToTarget = distanceToTarget;
-
-        // BONUS: Reward for facing target (helps with early training)
-        Vector3 toTarget = (target.localPosition - transform.localPosition);
-        toTarget.y = 0;
-        toTarget.Normalize();
-        float alignment = Vector3.Dot(transform.forward, toTarget);
-        AddReward(alignment * 0.02f);  // Small bonus
-
-        // SUCCESS
-        if (distanceToTarget < targetReachDistance)
-        {
-            AddReward(reachReward);
-            floorRenderer.material = winMaterial;
-            EndEpisode();
-        }
-
-        // FAILURE
-        if (Mathf.Abs(transform.localPosition.x) > maxDistance ||
-            Mathf.Abs(transform.localPosition.z) > maxDistance)
-        {
-            AddReward(outOfBoundsPenalty);
-            floorRenderer.material = loseMaterial;
-            EndEpisode();
-        }
-
-        // Small step penalty
-        AddReward(stepPenalty);
     }
-
-    // Optional: For manual testing
+    
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var continuousActionsOut = actionsOut.ContinuousActions;
-        continuousActionsOut[0] = Input.GetAxis("Vertical");
-        continuousActionsOut[1] = Input.GetAxis("Horizontal");
+        // Manual control for testing
+        ActionSegment<float> continuousActions = actionsOut.ContinuousActions;
+        
+        continuousActions[0] = Input.GetAxisRaw("Vertical");   // W/S
+        continuousActions[1] = Input.GetAxisRaw("Horizontal"); // A/D
     }
 }
