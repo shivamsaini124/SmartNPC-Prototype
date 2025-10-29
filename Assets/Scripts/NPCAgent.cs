@@ -86,14 +86,7 @@ public class NPCAgent : Agent
 
         // Reward for reducing distance
         float distanceDelta = previousDistanceToTarget - distanceToTarget;
-        AddReward(distanceDelta * 0.5f);
-
-        // Bonus when very close (within 3 units)
-        if (distanceToTarget < 3.0f)
-        {
-            float proximityBonus = (3.0f - distanceToTarget) / 3.0f * 0.1f;
-            AddReward(proximityBonus);
-        }
+        AddReward(distanceDelta * 1.0f);
 
         // Small time penalty
         AddReward(-0.001f);
